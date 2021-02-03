@@ -1,6 +1,8 @@
 import sys
 import os
 import heapq as hq
+import threading
+from threading import Thread
 
 #--------------------------------------------------------------------------------------------------------#
 
@@ -63,8 +65,59 @@ def sort_chunk(chunk, order, num):
     for i in range (0,len(new_chunk)):
         new_chunk[i] = new_chunk[i][1:]
     
-    print("\n--> Chunk " + str(num+1) + " sorted")
+    print("--> Chunk " + str(num+1) + " sorted")
     return new_chunk
+
+#--------------------------------------------------------------------------------------------------------#
+
+class sort_chunk_thread(Thread):
+
+    def __init__(self, chunk, order, num):
+        super(sort_chunk_thread, self).__init__()
+        self.order = order
+        self.num = num
+        self.chunk=chunk
+        self.start()
+
+
+    def run(self):
+
+        thlimit.acquire()
+        try:
+            global col_idx
+            new_chunk = []
+            for i in range (0, len(self.chunk)):
+                key = ""
+                for idx in col_idx:
+                    key+=self.chunk[i][idx]
+                #print("KEY" + key)
+                new_row = []
+                new_row.append(key)
+                new_row.extend(self.chunk[i])
+                new_chunk.append(new_row)
+            
+            if self.order=="asc":
+                new_chunk.sort(key=lambda x:x[0])
+            else:
+                new_chunk.sort(key=lambda x:x[0], reverse=True)
+
+            for i in range (0,len(new_chunk)):
+                new_chunk[i] = new_chunk[i][1:]
+            
+            print("--> Chunk " + str(self.num+1) + " sorted")
+
+            chunkName = "chunk_" + str(self.num+1) + ".txt"
+            data = ""
+            for row in new_chunk:
+                for token in row:
+                    data+=token+"  "
+                data = data[:-2]
+                data+="\n"
+            file = open(chunkName,'w') 
+            file.write(data[:-1])
+
+        finally:
+            thlimit.release()
 
 #--------------------------------------------------------------------------------------------------------#
 
@@ -108,6 +161,42 @@ def create_sorted_chunks(Num_of_rows_in_one_chunk, order, ipfilename):
         file.write(data[:-1])
         chunk = []
     
+    return num
+
+#--------------------------------------------------------------------------------------------------------#
+
+def create_sorted_chunks_thread(Num_of_rows_in_one_chunk, order, ipfilename, threadCount):
+    global total_tuples
+    global thlimit
+    thlimit = threading.BoundedSemaphore(threadCount)
+
+    chunk = []
+    num = 0
+    ipfile = open(ipfilename, 'r+')
+    threads = []
+
+    while True:
+        line = ipfile.readline()
+        if not line:
+            break
+        row = line.strip().split("  ")
+        total_tuples+=1
+        chunk.append(row)
+        if(len(chunk)==Num_of_rows_in_one_chunk):
+            t = sort_chunk_thread(chunk, order, num)
+            threads.append(t)
+            num+=1
+            chunk = []
+            
+    if(len(chunk)>0):
+        t = sort_chunk_thread(chunk, order, num)
+        threads.append(t)
+        num+=1
+        chunk = []
+    
+    for th in threads:
+        th.join()
+
     return num
 
 #--------------------------------------------------------------------------------------------------------#
@@ -189,27 +278,44 @@ def main():
     input_filePath  = sys.argv[1]
     output_filePath = sys.argv[2]
     main_memory_size = int(sys.argv[3])
-    order = sys.argv[4]
-
+    tkn4 = sys.argv[4]
+    order = ""
+    threadCount = 0
     global sort_order
-    if order == "desc":
-        sort_order = False
-
-    cols = []
-    for i in range(5,n):
-        cols.append(sys.argv[i])
+    global col_idx
 
     print("\n-----------------------> STATS <-------------------------")
-    print("\n\n MAIN MEMORY LIMIT : " + str(main_memory_size) + " MB")       
-    global col_idx
-    col_idx = get_col_idx(cols)
-
-    Num_of_rows_in_one_chunk = main_memory_size*1000*1000//tuple_size()
+    print("\n\n MAIN MEMORY LIMIT : " + str(main_memory_size) + " MB")
     print("\n\n--> Sorting Initiated..")
-    Num_of_chunks = create_sorted_chunks(Num_of_rows_in_one_chunk, order, input_filePath)
+    print("\n\n--> ## Running Phase 1 ##\n\n")        
+
+    if tkn4.lower() == "asc" or tkn4.lower() == "desc":
+        order = tkn4
+        if order == "desc":
+            sort_order = False
+        cols = []
+        for i in range(5,n):
+            cols.append(sys.argv[i])
+        col_idx = get_col_idx(cols)
+        Num_of_rows_in_one_chunk = main_memory_size*1000*1000//tuple_size()
+        Num_of_chunks = create_sorted_chunks(Num_of_rows_in_one_chunk, order, input_filePath)
+        
+    else:
+        threadCount = int(tkn4)
+        order = sys.argv[5]
+        if order == "desc":
+            sort_order = False
+        cols = []
+        for i in range(6,n):
+            cols.append(sys.argv[i])
+        col_idx = get_col_idx(cols)
+        Num_of_rows_in_one_chunk = main_memory_size*1000*1000//(tuple_size()*threadCount)
+        Num_of_chunks = create_sorted_chunks_thread(Num_of_rows_in_one_chunk, order, input_filePath, threadCount)
+        
+    print("\n\n--> ## Running Phase 2 ##")        
     merge_sorted_chunks(Num_of_chunks, output_filePath)
     delete_temp_chunks(Num_of_chunks)
-    print("\n==> Sorting Completed.\n\n")
+    print("\n==> Sorting Completed.\n")
 
 #--------------------------------------------------------------------------------------------------------#
 
