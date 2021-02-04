@@ -3,6 +3,7 @@ import os
 import heapq as hq
 import threading
 from threading import Thread
+import time
 
 #--------------------------------------------------------------------------------------------------------#
 
@@ -16,7 +17,7 @@ total_tuples = 0
 def read_meta_data():
     metadata = open("metadata.txt","r")
     for line in metadata:
-        col, size = line.strip().split(",")
+        col, size = line.strip("\n").split(",")
         temp = []
         temp.append(col)
         temp.append(size)
@@ -66,7 +67,17 @@ def sort_chunk(chunk, order, num):
         new_chunk[i] = new_chunk[i][1:]
     
     print("--> Chunk " + str(num+1) + " sorted")
-    return new_chunk
+
+    chunkName = "chunk_" + str(num+1) + ".txt"
+    file = open(chunkName,'w') 
+    for row in new_chunk:
+        data = ""
+        for token in row:
+            data+=token+"  "
+        data = data[:-2]
+        file.write(data)
+        file.write("\n")
+    file.close()
 
 #--------------------------------------------------------------------------------------------------------#
 
@@ -107,15 +118,16 @@ class sort_chunk_thread(Thread):
             print("--> Chunk " + str(self.num+1) + " sorted")
 
             chunkName = "chunk_" + str(self.num+1) + ".txt"
-            data = ""
+            file = open(chunkName,'w') 
+            
             for row in new_chunk:
+                data = ""
                 for token in row:
                     data+=token+"  "
                 data = data[:-2]
-                data+="\n"
-            file = open(chunkName,'w') 
-            file.write(data[:-1])
-
+                file.write(data)
+                file.write("\n")
+            file.close()
         finally:
             thlimit.release()
 
@@ -130,35 +142,29 @@ def create_sorted_chunks(Num_of_rows_in_one_chunk, order, ipfilename):
         line = ipfile.readline()
         if not line:
             break
-        row = line.strip().split("  ")
+        row = line.strip("\n").split("  ")
+
+        if(len(row)!=len(meta)):
+            temp = []
+            sr = ""
+            for i in range(len(row)-2):
+                sr+=row[i] + "  "
+            sr = sr[:-2]
+            temp.append(sr)
+            for i in range(len(row)-2, len(row)):
+                temp.append(row[i])
+            row = temp
+
         total_tuples+=1
         chunk.append(row)
         if(len(chunk)==Num_of_rows_in_one_chunk):
-            chunk = sort_chunk(chunk, order, num)
-            chunkName = "chunk_" + str(num+1) + ".txt"
+            sort_chunk(chunk, order, num)
             num+=1
-            data = ""
-            for row in chunk:
-                for token in row:
-                    data+=token+"  "
-                data = data[:-2]
-                data+="\n"
-            file = open(chunkName,'w') 
-            file.write(data[:-1])
             chunk = []
             
     if(len(chunk)>0):
-        chunk = sort_chunk(chunk, order, num)
-        chunkName = "chunk_" + str(num+1) + ".txt"
+        sort_chunk(chunk, order, num)
         num+=1
-        data = ""
-        for row in chunk:
-            for token in row:
-                data+=token+"  "
-            data = data[:-2]
-            data+="\n"
-        file = open(chunkName,'w') 
-        file.write(data[:-1])
         chunk = []
     
     return num
@@ -179,7 +185,19 @@ def create_sorted_chunks_thread(Num_of_rows_in_one_chunk, order, ipfilename, thr
         line = ipfile.readline()
         if not line:
             break
-        row = line.strip().split("  ")
+        row = line.strip("\n").split("  ")
+
+        if(len(row)!=len(meta)):
+            temp = []
+            sr = ""
+            for i in range(len(row)-2):
+                sr+=row[i] + "  "
+            sr = sr[:-2]
+            temp.append(sr)
+            for i in range(len(row)-2, len(row)):
+                temp.append(row[i])
+            row = temp
+
         total_tuples+=1
         chunk.append(row)
         if(len(chunk)==Num_of_rows_in_one_chunk):
@@ -207,14 +225,14 @@ def merge_sorted_chunks(Num_of_chunks, opfilename):
     datalist = []
     heap = []
     tuple_count = 0
-    print("\n--> Final merge Initialising")
+    print("\n\n--> Final merge Initialising")
     for i in range(Num_of_chunks):
         chunkptr = open("chunk_"+str(i+1)+".txt", 'r+')
         chunks_list.append(chunkptr)
 
     for i in range(Num_of_chunks):
         lineptr = chunks_list[i].readline()
-        row = lineptr.strip().split("  ")
+        row = lineptr.strip("\n").split("  ")
         datalist.append(row)
         key = ""
         for ci in col_idx:
@@ -247,7 +265,19 @@ def merge_sorted_chunks(Num_of_chunks, opfilename):
             opfile.write(data1)
 
             lineptr = chunks_list[index].readline()
-            row = lineptr.strip().split("  ")
+            row = lineptr.strip("\n").split("  ")
+
+            if(len(row)!=len(meta)):
+                temp = []
+                sr = ""
+                for i in range(len(row)-2):
+                    sr+=row[i] + "  "
+                sr = sr[:-2]
+                temp.append(sr)
+                for i in range(len(row)-2, len(row)):
+                    temp.append(row[i])
+                row = temp
+
             if row[0]=='':
                 continue
 
@@ -272,6 +302,8 @@ def delete_temp_chunks(Num_of_chunks):
 #--------------------------------------------------------------------------------------------------------#
 
 def main():
+    st = time.time()
+
     read_meta_data()
 
     n = len(sys.argv)
@@ -315,8 +347,11 @@ def main():
     print("\n\n--> ## Running Phase 2 ##")        
     merge_sorted_chunks(Num_of_chunks, output_filePath)
     delete_temp_chunks(Num_of_chunks)
-    print("\n==> Sorting Completed.\n")
+    print("\n\n==> Sorting Completed.\n\n")
 
+    print("Total execution Time : ", end = " ")
+    print(time.time()-st)
+    print()
 #--------------------------------------------------------------------------------------------------------#
 
 main()
