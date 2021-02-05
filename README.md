@@ -10,7 +10,7 @@ Language used : Python 3
 
 1. Without Multithreading
 
-`python sort.py <input filename> <output filename> <memory limit> <order> <colomn list>`
+`python sort.py <input_filename> <output_filename> <memory_limit> <order> <colomn_list>`
 
 Example : 
 
@@ -18,7 +18,7 @@ Example :
 
 2. With Multithreading
 
-`python sort.py <input_filename> <output_filename> <memory_limit> <thread_count> <order> <colomn list>`
+`python sort.py <input_filename> <output_filename> <memory_limit> <thread_count> <order> <colomn_list>`
 
 Example : 
 
