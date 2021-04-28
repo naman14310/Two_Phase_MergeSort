@@ -1,8 +1,0 @@
-bbb  fff  ppp  kkk  ttt
-aaa  ddd  ooo  iii  uuu
-ccc  ggg  qqq  lll  www
-aaa  eee  rrr  mmm  yyy
-aaa  ddd  rrr  hhh  vvv
-aaa  ddd  nnn  iii  zzz
-ccc  fff  sss  kkk  xxx
-bbb  fff  sss  kkk  xxx
