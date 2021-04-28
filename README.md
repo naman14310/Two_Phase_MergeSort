@@ -1,6 +1,6 @@
-# Assignment-2 : Two-phase-merge-sort
+# Two phase merge sort
 
-Language used : Python 3
+#### Language used : Python 3
 
 ## Contents in folder
 1. sort.py
