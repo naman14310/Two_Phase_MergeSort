@@ -1,4 +1,4 @@
-# Two phase merge sort
+# Two Phase Merge Sort
 
 #### Language used : Python 3
 
