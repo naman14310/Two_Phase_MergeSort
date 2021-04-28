@@ -83,16 +83,7 @@ def sort_chunk(chunk, order, num):
 
 class sort_chunk_thread(Thread):
 
-    def __init__(self, chunk, order, num):
-        super(sort_chunk_thread, self).__init__()
-        self.order = order
-        self.num = num
-        self.chunk=chunk
-        self.start()
-
-
     def run(self):
-
         thlimit.acquire()
         try:
             global col_idx
@@ -130,6 +121,14 @@ class sort_chunk_thread(Thread):
             file.close()
         finally:
             thlimit.release()
+            
+    def __init__(self, chunk, order, num):
+
+        super(sort_chunk_thread, self).__init__()
+        self.num = num
+        self.chunk=chunk
+        self.order = order
+        self.start()
 
 #--------------------------------------------------------------------------------------------------------#
 
@@ -233,6 +232,18 @@ def merge_sorted_chunks(Num_of_chunks, opfilename):
     for i in range(Num_of_chunks):
         lineptr = chunks_list[i].readline()
         row = lineptr.strip("\n").split("  ")
+        
+        if(len(row)!=len(meta)):
+            temp = []
+            sr = ""
+            for i in range(len(row)-2):
+                sr+=row[i] + "  "
+            sr = sr[:-2]
+            temp.append(sr)
+            for i in range(len(row)-2, len(row)):
+                temp.append(row[i])
+            row = temp
+    
         datalist.append(row)
         key = ""
         for ci in col_idx:
@@ -267,6 +278,7 @@ def merge_sorted_chunks(Num_of_chunks, opfilename):
             lineptr = chunks_list[index].readline()
             row = lineptr.strip("\n").split("  ")
 
+            
             if(len(row)!=len(meta)):
                 temp = []
                 sr = ""
@@ -351,6 +363,7 @@ def main():
 
     print("Total execution Time : ", end = " ")
     print(time.time()-st)
+    print()
     print()
 #--------------------------------------------------------------------------------------------------------#
 
